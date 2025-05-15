@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@rdkit/rdkit':
+        specifier: 2023.3.1-1.0.1
+        version: 2023.3.1-1.0.1
       d3:
         specifier: ^7.9.0
         version: 7.9.0
@@ -292,6 +295,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@rdkit/rdkit@2023.3.1-1.0.1':
+    resolution: {integrity: sha512-C7OTHBALEta7Y9rt4jCpaG4x+eV84TVgznyZek20Vbqfg+h8fbEvmVN+h1F56ZCWsI1lY2+TB5FevsgQq8Otgg==}
 
   '@rollup/rollup-android-arm-eabi@4.40.0':
     resolution: {integrity: sha512-+Fbls/diZ0RDerhE8kyC6hjADCXA1K4yVNlH0EYfd2XjyH0UGgzaQ8MlT0pCXAThfxv3QUAczHaL+qSv1E4/Cg==}
@@ -1321,6 +1327,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
+
+  '@rdkit/rdkit@2023.3.1-1.0.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.40.0':
     optional: true
