@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ChartProps, Data } from "../types";
 
+interface ExtendedData extends Data {
+  img?: HTMLImageElement;
+}
+
 const padding = 50;
 const fontSize = 12;
+const imageSize = 40; // 이미지 크기 설정
 
 function getMinMaxData(data: Data[]) {
   const minX = Math.min(...data.map((d) => d.x));
@@ -18,9 +23,9 @@ export function ScatterPlot({
   width,
   height,
   pointRadius = 5,
-}: ChartProps) {
+}: Omit<ChartProps, "data"> & { data: ExtendedData[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { minX, maxX, minY, maxY } = getMinMaxData(data);
+  const { minX, maxX, minY, maxY } = getMinMaxData(data as Data[]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
@@ -31,11 +36,13 @@ export function ScatterPlot({
     padding -
     ((y - minY) / (maxY - minY || 1)) * (height - padding * 2);
 
-  // 라벨 좌상단 기준 위치
+  // 라벨과 이미지 위치 상태
   const [labels, setLabels] = useState(() =>
     data.map((d) => ({
       x: scaleX(d.x) + 10,
-      y: scaleY(d.y) - fontSize,
+      y: scaleY(d.y) - fontSize - imageSize - 5, // 이미지 크기만큼 위로 올림
+      imageX: scaleX(d.x) + 10,
+      imageY: scaleY(d.y) - imageSize - 5,
     }))
   );
   const labelsRef = useRef(labels);
@@ -105,19 +112,31 @@ export function ScatterPlot({
       ctx.fillText(text, x, y);
     };
 
+    const drawImage = (x: number, y: number, img: HTMLImageElement) => {
+      ctx.drawImage(img, x, y, imageSize, imageSize);
+    };
+
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
       drawAxis();
+
+      // 데이터 포인트와 마커 그리기
       data.forEach((d) => {
         drawMarker(scaleX(d.x), scaleY(d.y));
       });
 
+      // 라벨과 이미지 그리기
       labelsRef.current.forEach((label, i) => {
         const text = data[i].label;
         const textWidth = ctx.measureText(text).width;
 
-        drawLabel(label.x, label.y, text);
+        // 이미지 그리기
+        if (data[i].img) {
+          drawImage(label.imageX, label.imageY, data[i].img);
+        }
 
+        // 텍스트 라벨 그리기
+        drawLabel(label.x, label.y, text);
         ctx.fillStyle = "rgba(255, 200, 0, 0.55)";
         ctx.fillRect(label.x, label.y, textWidth, fontSize);
       });
@@ -141,19 +160,29 @@ export function ScatterPlot({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.font = `${fontSize}px sans-serif`;
-      ctx.textBaseline = "top"; //
-      for (let i = 0; i < labelsRef.current.length; i++) {
+      ctx.textBaseline = "top";
+
+      for (let i = labelsRef.current.length - 1; i >= 0; i--) {
         const label = labelsRef.current[i];
         const text = data[i].label;
         const w = ctx.measureText(text).width;
         const h = fontSize;
 
-        const withinX = mx >= label.x && mx <= label.x + w;
-        const withinY = my >= label.y && my <= label.y + h;
+        // 라벨 영역 체크
+        const withinLabelX = mx >= label.x && mx <= label.x + w;
+        const withinLabelY = my >= label.y && my <= label.y + h;
 
-        if (withinX && withinY) {
+        // 이미지 영역 체크
+        const withinImageX =
+          mx >= label.imageX && mx <= label.imageX + imageSize;
+        const withinImageY =
+          my >= label.imageY && my <= label.imageY + imageSize;
+
+        if ((withinLabelX && withinLabelY) || (withinImageX && withinImageY)) {
           setDragIndex(i);
-          setOffset({ x: mx - label.x, y: my - label.y });
+          console.log(mx, label, i);
+          // 항상 이미지 위치를 기준으로 offset 계산
+          setOffset({ x: mx - label.imageX, y: my - label.imageY });
           break;
         }
       }
@@ -166,10 +195,19 @@ export function ScatterPlot({
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
 
+      const ctx = canvasRef.current?.getContext("2d");
+      if (!ctx) return;
+
       const updated = [...labelsRef.current];
+      // 이미지 위치를 기준으로 전체 그룹 이동
+      const newImageX = mx - offset.x;
+      const newImageY = my - offset.y;
+
       updated[dragIndex] = {
-        x: mx - offset.x,
-        y: my - offset.y,
+        imageX: newImageX,
+        imageY: newImageY,
+        x: newImageX,
+        y: newImageY - fontSize, // 이미지 위에 라벨 위치
       };
 
       labelsRef.current = updated;
